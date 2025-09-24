@@ -8,6 +8,12 @@ import matplotlib
 import io
 import urllib, base64
 
+import numpy as np
+
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
 def home(request):
     #return HttpResponse('<h1>Welcome to Home Page</h1>')
     #return render(request, 'home.html')
@@ -28,6 +34,48 @@ def signup(request):
     email = request.GET.get('email') 
     return render(request, 'signup.html', {'email':email})
 
+def recommendations(request):
+    similar_movie = None
+    similarity = None
+    prompt = ""
+    if request.method == "POST":
+        prompt = request.POST.get("prompt")
+        if prompt:
+            # Aca hacemos lo de la API Key
+            load_dotenv('/Users/andresperezquinchia/Universidad/Proyecto_1/Taller3_PI1/openAI.env')
+            api_key = os.environ.get('openai_apikey')
+            if not api_key:
+                return render(request, "recommendations.html", {
+                    "prompt": prompt,
+                    "similar_movie": None,
+                    "similarity": None,
+                    "error": "No se encontró la API Key de OpenAI."
+                })
+            client = OpenAI(api_key=api_key)
+
+            # Generar embedding lo que buscamos
+            response = client.embeddings.create(
+                input=[prompt],
+                model="text-embedding-3-small"
+            )
+            prompt_emb = np.array(response.data[0].embedding, dtype=np.float32)
+
+            # Buscar la película más parecida
+            max_similarity = -1
+            for movie in Movie.objects.all():
+                movie_emb = np.frombuffer(movie.emb, dtype=np.float32)
+                sim = np.dot(prompt_emb, movie_emb) / (np.linalg.norm(prompt_emb) * np.linalg.norm(movie_emb))
+                if sim > max_similarity:
+                    max_similarity = sim
+                    similar_movie = movie
+                    similarity = sim
+
+    return render(
+        request, "recommendations.html", {
+        "prompt": prompt,
+        "similar_movie": similar_movie,
+        "similarity": similarity
+    })
 
 def statistics_view0(request):
     matplotlib.use('Agg')

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container my-4">
+  <h1 class="mb-3">Movie Recommendations</h1>
+
+  <form action="{% url 'recommendations' %}" method="post" class="row g-2 align-items-center mb-4">
+    {% csrf_token %}
+    <div class="col-12 col-md-8">
+      <label for="prompt" class="form-label">
+        What ya wanna see...?
+    </label>
+      <input
+        type="text"
+        id="prompt"
+        name="prompt"
+        class="form-control"
+        placeholder="What movie are you feeling?"
+        value="{{ prompt|default:'' }}"
+        required
+      >
+      <button type="submit" class="btn btn-primary w-100">
+        Search Database
+      </button>
+    </div>
+  </form>
+
+  {% if error %}
+    <div class="alert alert-danger" role="alert">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  {% if prompt %}
+    <p class="text-muted">
+        Term: <code>
+            {{ prompt }}
+        </code>
+    </p>
+  {% endif %}
+
+  {% if similar_movie %}
+    <div class="card mb-4">
+      <div class="row g-0">
+        <div class="col-md-3">
+          {% if similar_movie.image %}
+            <img src="{{ similar_movie.image.url }}" class="img-fluid rounded-start" alt="{{ similar_movie.title }}">
+          {% endif %}
+        </div>
+        <div class="col-md-9">
+          <div class="card-body">
+            <h5 class="card-title">{{ similar_movie.title }}</h5>
+            {% if similar_movie.year or similar_movie.genre %}
+              <p class="mb-1">
+                {% if similar_movie.year %}<span class="badge text-bg-secondary me-2">Año: {{ similar_movie.year }}</span>{% endif %}
+                {% if similar_movie.genre %}<span class="badge text-bg-info">Género: {{ similar_movie.genre }}</span>{% endif %}
+              </p>
+            {% endif %}
+            {% if similar_movie.description %}
+              <p class="card-text mt-2">{{ similar_movie.description }}</p>
+            {% endif %}
+            {% if similarity is not None %}
+              <p class="card-text">
+                <small class="text-muted">Similitud (coseno): {{ similarity|floatformat:4 }}</small>
+              </p>
+            {% endif %}
+            {% if similar_movie.url %}
+              <a class="btn btn-outline-secondary" href="{{ similar_movie.url }}" target="_blank" rel="noopener">Ver más</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% elif prompt and not error %}
+    <div class="alert alert-warning" role="alert">
+      No luck with this one, try with another movie my guy!
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}
